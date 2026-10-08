@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>称重大挑战——用水位线称花盆</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Microsoft YaHei", sans-serif;
+    background: #f0f4f8;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+  }
+  h1 { font-size: 22px; color: #2c3e50; margin-bottom: 12px; }
+  .stage {
+    position: relative;
+    width: 520px;
+    height: 440px;
+    background: #eaf6fd;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    margin-bottom: 16px;
+  }
+  /* 水槽 */
+  .tank {
+    position: absolute;
+    left: 60px;
+    bottom: 50px;
+    width: 400px;
+    height: 300px;
+    border: 4px solid #5dade2;
+    border-top: none;
+    border-radius: 0 0 10px 10px;
+    z-index: 2;
+  }
+  /* 水 */
+  .water {
+    position: absolute;
+    left: 64px;
+    bottom: 54px;
+    width: 392px;
+    height: 160px;
+    background: linear-gradient(180deg, #aed6f1 0%, #7fbde6 100%);
+    border-radius: 0 0 8px 8px;
+    transition: height 0.5s ease;
+    z-index: 1;
+  }
+  .water::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: #5dade2;
+    opacity: 0.6;
+  }
+  /* 花盆 */
+  .flowerpot {
+    position: absolute;
+    left: 230px;
+    width: 60px;
+    height: 55px;
+    background: linear-gradient(180deg, #d9534f 0%, #b03a2e 100%);
+    border-radius: 4px 4px 14px 14px;
+    transition: bottom 0.5s ease, opacity 0.4s;
+    z-index: 3;
+    display: none;
+  }
+  /* 花盆盆沿 */
+  .flowerpot::before {
+    content: "";
+    position: absolute;
+    top: -8px;
+    left: -6px;
+    width: 72px;
+    height: 12px;
+    background: #c0392b;
+    border-radius: 4px;
+  }
+  /* 花盆里的小芽 */
+  .flowerpot::after {
+    content: "🌱";
+    font-size: 22px;
+    position: absolute;
+    top: -30px;
+    left: 18px;
+  }
+  /* 红色标记线 */
+  .markline {
+    position: absolute;
+    left: 60px;
+    width: 400px;
+    height: 0;
+    border-top: 3px dashed #e74c3c;
+    z-index: 5;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .markline::after {
+    content: "红色标记线";
+    position: absolute;
+    right: -85px;
+    top: -10px;
+    color: #e74c3c;
+    font-size: 12px;
+    font-weight: bold;
+  }
+  /* ===== 盐袋形象 ===== */
+  .saltbag {
+    position: absolute;
+    width: 42px;
+    height: 50px;
+    z-index: 4;
+    transition: bottom 0.4s ease;
+  }
+  /* 盐袋袋身 */
+  .saltbag .bag-body {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 42px;
+    height: 42px;
+    background: linear-gradient(180deg, #ffffff 0%, #eaf2f8 100%);
+    border: 2px solid #aab7b8;
+    border-radius: 3px 3px 6px 6px;
+    box-shadow: inset -3px 0 0 rgba(0,0,0,0.05);
+  }
+  /* 盐袋顶部封口 */
+  .saltbag .bag-top {
+    position: absolute;
+    top: 0;
+    left: 4px;
+    width: 34px;
+    height: 10px;
+    background: #d5dbdb;
+    border: 2px solid #aab7b8;
+    border-bottom: none;
+    border-radius: 3px 3px 0 0;
+  }
+  /* 盐袋顶部锯齿 */
+  .saltbag .bag-zigzag {
+    position: absolute;
+    top: -3px;
+    left: 4px;
+    width: 34px;
+    height: 4px;
+    background: repeating-linear-gradient(
+      90deg,
+      #aab7b8 0px, #aab7b8 3px,
+      transparent 3px, transparent 6px
+    );
+  }
+  /* 盐袋标签 */
+  .saltbag .bag-label {
+    position: absolute;
+    bottom: 10px;
+    left: 5px;
+    width: 32px;
+    height: 22px;
+    background: #3498db;
+    border-radius: 2px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    line-height: 1;
+  }
+  .saltbag .bag-label .salt-word {
+    font-size: 13px;
+    font-weight: bold;
+    letter-spacing: 2px;
+  }
+  .saltbag .bag-label .salt-weight {
+    font-size: 7px;
+    margin-top: 2px;
+    opacity: 0.9;
+  }
+  /* 控制面板 */
+  .panel {
+    width: 520px;
+    background: #fff;
+    border-radius: 12px;
+    padding: 16px 20px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  }
+  .hint {
+    background: #fff8e1;
+    border-left: 4px solid #f1c40f;
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 14px;
+    color: #7d6608;
+    line-height: 1.7;
+    margin-bottom: 14px;
+  }
+  .hint strong { color: #e67e22; }
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+  button {
+    padding: 9px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  button:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn-primary { background: #3498db; color: #fff; }
+  .btn-warn { background: #e67e22; color: #fff; }
+  .btn-salt { background: #f1c40f; color: #7d6608; font-weight: bold; }
+  .btn-reset { background: #95a5a6; color: #fff; }
+  .status {
+    font-size: 14px;
+    color: #2c3e50;
+    line-height: 1.7;
+    min-height: 48px;
+    padding: 8px 0;
+  }
+  .highlight { color: #e74c3c; font-weight: bold; }
+  .success { color: #27ae60; font-weight: bold; }
+  .result {
+    margin-top: 8px;
+    padding: 12px 16px;
+    background: #eafaf1;
+    border-left: 4px solid #27ae60;
+    border-radius: 6px;
+    font-size: 15px;
+    color: #1e8449;
+    display: none;
+    line-height: 1.8;
+  }
+  .result.show { display: block; }
+</style>
+</head>
+<body>
+
+<h1>🌊 用水位线称花盆</h1>
+
+<div class="stage" id="stage">
+  <div class="water" id="water"></div>
+  <div class="tank"></div>
+  <div class="markline" id="markline"></div>
+  <div class="flowerpot" id="flowerpot"></div>
+</div>
+
+<div class="panel">
+  <div class="hint">
+    <strong>实验流程：</strong><br>
+    第一步：把花盆放入水中，水面上升，在当前位置画一条红色标记线，然后取出花盆。<br>
+    第二步：先预测需要几袋盐。<br>
+    第三步：一袋一袋加盐，盐袋沉入水底，观察水面什么时候回到红色标记线。
+  </div>
+
+  <div class="row">
+    <button class="btn-primary" id="btnPutPot">① 放入花盆</button>
+    <button class="btn-warn" id="btnRemovePot" disabled>② 取出花盆</button>
+  </div>
+  <div class="row">
+    <button class="btn-salt" id="btnAddSalt" disabled>③ 加一袋盐（200克）</button>
+    <button class="btn-reset" id="btnReset">🔄 重新开始</button>
+  </div>
+
+  <div class="status" id="status">点击「放入花盆」开始实验。</div>
+  <div class="result" id="result"></div>
+</div>
+
+<script>
+var CONFIG = {
+  initialWaterHeight: 160,
+  potRiseHeight: 70,
+  saltRisePerBag: 14,
+  correctBags: 5,
+  tankBottom: 54,
+  tankLeft: 64,
+  tankWidth: 392
+};
+
+var state = { phase: 'idle', saltCount: 0 };
+var saltBags = [];
+
+var stage = document.getElementById('stage');
+var water = document.getElementById('water');
+var flowerpot = document.getElementById('flowerpot');
+var markline = document.getElementById('markline');
+var statusEl = document.getElementById('status');
+var resultEl = document.getElementById('result');
+
+var btnPutPot = document.getElementById('btnPutPot');
+var btnRemovePot = document.getElementById('btnRemovePot');
+var btnAddSalt = document.getElementById('btnAddSalt');
+var btnReset = document.getElementById('btnReset');
+
+/* 创建一个盐袋DOM元素 */
+function createSaltBag() {
+  var bag = document.createElement('div');
+  bag.className = 'saltbag';
+  bag.innerHTML =
+    '<div class="bag-zigzag"></div>' +
+    '<div class="bag-top"></div>' +
+    '<div class="bag-body"></div>' +
+    '<div class="bag-label">' +
+      '<span class="salt-word">盐</span>' +
+      '<span class="salt-weight">200g</span>' +
+    '</div>';
+  return bag;
+}
+
+function init() {
+  water.style.height = CONFIG.initialWaterHeight + 'px';
+  flowerpot.style.display = 'none';
+  flowerpot.style.opacity = '1';
+  flowerpot.style.bottom = '360px';
+  markline.style.opacity = '0';
+  markline.style.borderTopColor = '#e74c3c';
+  markline.style.borderTopWidth = '3px';
+
+  for (var i = 0; i < saltBags.length; i++) {
+    if (saltBags[i].parentNode) {
+      saltBags[i].parentNode.removeChild(saltBags[i]);
+    }
+  }
+  saltBags = [];
+
+  resultEl.classList.remove('show');
+  resultEl.innerHTML = '';
+  state = { phase: 'idle', saltCount: 0 };
+
+  btnPutPot.disabled = false;
+  btnRemovePot.disabled = true;
+  btnAddSalt.disabled = true;
+  statusEl.innerHTML = '点击「放入花盆」开始实验。';
+}
+
+function putPot() {
+  if (state.phase !== 'idle') return;
+  state.phase = 'potIn';
+
+  flowerpot.style.display = 'block';
+  flowerpot.style.bottom = '360px';
+
+  setTimeout(function() {
+    flowerpot.style.bottom = (CONFIG.tankBottom + 10) + 'px';
+  }, 100);
+
+  setTimeout(function() {
+    var newHeight = CONFIG.initialWaterHeight + CONFIG.potRiseHeight;
+    water.style.height = newHeight + 'px';
+
+    var stageHeight = 440;
+    var waterTop = stageHeight - CONFIG.tankBottom - newHeight;
+    markline.style.bottom = (stageHeight - waterTop) + 'px';
+    markline.style.opacity = '1';
+
+    statusEl.innerHTML = '花盆放入水中，水面上升。在当前位置画一条<span class="highlight">红色标记线</span>。';
+    btnPutPot.disabled = true;
+    btnRemovePot.disabled = false;
+  }, 700);
+}
+
+function removePot() {
+  if (state.phase !== 'potIn') return;
+  state.phase = 'potOut';
+
+  flowerpot.style.bottom = '380px';
+  flowerpot.style.opacity = '0';
+
+  setTimeout(function() {
+    flowerpot.style.display = 'none';
+    water.style.height = CONFIG.initialWaterHeight + 'px';
+
+    statusEl.innerHTML = '花盆取出，水面下降。<span class="highlight">红色标记线留在原处</span>。现在请先预测需要几袋盐，再一袋一袋加盐。';
+    btnRemovePot.disabled = true;
+    btnAddSalt.disabled = false;
+    state.phase = 'adding';
+  }, 600);
+}
+
+function addSalt() {
+  if (state.phase !== 'adding' && state.phase !== 'done') return;
+
+  state.saltCount++;
+
+  var bag = createSaltBag();
+
+  var perRow = 8;
+  var index = state.saltCount - 1;
+  var row = Math.floor(index / perRow);
+  var col = index % perRow;
+
+  var bagWidth = 46;
+  var startX = CONFIG.tankLeft + 8 + col * bagWidth;
+  /* 盐袋沉在水底，底部对齐水槽底部内壁 */
+  var startY = CONFIG.tankBottom + 6 + row * 20;
+
+  bag.style.left = startX + 'px';
+  bag.style.bottom = startY + 'px';
+
+  stage.appendChild(bag);
+  saltBags.push(bag);
+
+  var newHeight = CONFIG.initialWaterHeight + state.saltCount * CONFIG.saltRisePerBag;
+  water.style.height = newHeight + 'px';
+
+  if (state.saltCount >= CONFIG.correctBags && state.phase !== 'done') {
+    state.phase = 'done';
+    btnAddSalt.disabled = true;
+
+    markline.style.borderTopColor = '#27ae60';
+    markline.style.borderTopWidth = '4px';
+    setTimeout(function() {
+      markline.style.borderTopColor = '#e74c3c';
+      markline.style.borderTopWidth = '3px';
+    }, 500);
+
+    var totalGram = state.saltCount * 200;
+    resultEl.innerHTML = '<strong>🎉 水面回到红色标记线了！</strong><br>' +
+      '说明盐袋排开水的体积与花盆相同，花盆的质量等于盐袋的总质量。<br>' +
+      '花盆质量 = ' + state.saltCount + ' 袋盐 × 200克 = <strong>' + totalGram + ' 克</strong>';
+    resultEl.classList.add('show');
+
+    statusEl.innerHTML = '水面回到<span class="success">红色标记线</span>，说明花盆质量 = 盐袋总质量。';
+  } else if (state.saltCount < CONFIG.correctBags) {
+    statusEl.innerHTML = '已加 <span class="highlight">' + state.saltCount + ' 袋</span>盐，水面还在标记线下方，继续加。';
+  } else if (state.saltCount > CONFIG.correctBags) {
+    statusEl.innerHTML = '已加 <span class="highlight">' + state.saltCount + ' 袋</span>盐，水面已经超过标记线了。';
+  }
+}
+
+btnPutPot.addEventListener('click', putPot);
+btnRemovePot.addEventListener('click', removePot);
+btnAddSalt.addEventListener('click', addSalt);
+btnReset.addEventListener('click', init);
+
+init();
+</script>
+
+</body>
+</html>
